@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>நாம் தமிழர் கட்சி — தூத்துக்குடி மாவட்டம்</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#B31217">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NTK தூத்துக்குடி">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Tamil:wght@500;700;900&family=Noto+Sans+Tamil:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <style>
@@ -4969,6 +4977,14 @@ fetchAdminsFromSheet(true).then(hadData=>{
   if(!hadData) syncAdminsToSheet();
 });
 if(currentAdmin){ enterAdminUI(); }
+/* PWA — "Add to Home Screen" ஆனதும் ஆப் போல திரையில் ஓட, app shell-ஐ மட்டும்
+   cache செய்யும் service worker-ஐ பதிவு செய்கிறோம். webhook/API தரவு ஒருபோதும்
+   cache செய்யப்படாது — sw.js பாருங்கள். */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
 const _cardParam = new URLSearchParams(window.location.search).get('card');
 if(_cardParam) showPublicCardView(_cardParam);
 </script>
