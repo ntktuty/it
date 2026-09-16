@@ -2735,7 +2735,109 @@ function printMemberIdCard(id){
   setTimeout(()=>w.print(), 400);
 }
 
-/* ============ பொது ஆர்வலர் அட்டை பார்வை (?card=<id> இணைப்பு) ============ */
+/* ============ நிர்வாகிகளுக்கான ஐடி அட்டை ============ */
+/* ஆர்வலர் அட்டையின் அதே டெம்ப்ளேட்/அமைப்புகளையே (idCardSettings) பயன்படுத்துகிறது —
+   தலைப்பில் மட்டும் "ஆர்வலர் அட்டை" க்கு பதிலாக "நாம் தமிழர் கட்சி / தூத்துக்குடி
+   மாவட்டம்" எனவும், வகை/பொறுப்பு பகுதி நிர்வாகியின் தரம் (super/state/district/
+   const/sub) க்கேற்பவும் காட்டப்படும். நிர்வாகி பதிவுகள் admins_sync எனும் ஒரே
+   JSON snapshot-ஆக சேமிக்கப்படுவதால், புகைப்படம்/ஐடி எண் சேர்ந்ததும் அதே
+   syncAdminsToSheet()-ஐ மீண்டும் அழைத்தால் போதும் — தனி backend action தேவையில்லை. */
+const ADMIN_ARRAYS = { const: () => admins, sub: () => subAdmins, state: () => stateAdmins, district: () => districtAdmins, super: () => superAdmins };
+const ADMIN_ID_PREFIX = { const:'CN', sub:'SB', state:'ST', district:'DT', super:'SUP' };
+function adminCardInfo(type, a){
+  const map = {
+    super: { role:'தலைமை நிர்வாகி', scope:'தூத்துக்குடி மாவட்டம் முழுவதும்' },
+    state: { role: a.role || 'மாநில நிர்வாகி', scope:'தமிழ்நாடு' },
+    district: { role: a.role || 'மாவட்ட நிர்வாகி', scope:'தூத்துக்குடி மாவட்டம்' },
+    const: { role:'தொகுதி நிர்வாகி', scope: a.constituency || '' },
+    sub: { role: a.tier==='ward' ? 'வார்டு நிர்வாகி' : 'கிராம நிர்வாகி', scope:(a.constituency||'') + (a.area ? ' — '+a.area : '') }
+  };
+  return map[type];
+}
+function handleAdminIdCard(type, idx){
+  const rec = ADMIN_ARRAYS[type]()[idx];
+  if(!rec) return;
+  if(rec.photoLink){ proceedAdminCard(type, idx); return; }
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = 'image/*';
+  inp.onchange = async (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    if(!settings.webhook){ toast('இணைப்பு அமைக்கப்படவில்லை'); return; }
+    try{
+      const dataUrl = await compressIdPhoto(file);
+      toast('புகைப்படம் பதிவேற்றப்படுகிறது...');
+      const res = await fetch(settings.webhook, {
+        method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+        body: JSON.stringify({ type:'admin_photo_upload', name:(rec.username||rec.name||'admin'), dataUrl })
+      });
+      const data = await res.json();
+      if(data && data.link){
+        rec.photoLink = data.link;
+        syncAdminsToSheet();
+        proceedAdminCard(type, idx);
+      } else { toast('பதிவேற்ற முடியவில்லை'); }
+    }catch(err){ toast('இணைப்பு பிழை — மீண்டும் முயற்சிக்கவும்'); }
+  };
+  inp.click();
+}
+function proceedAdminCard(type, idx){
+  const arr = ADMIN_ARRAYS[type]();
+  const rec = arr[idx];
+  if(!rec.idCardNo){
+    const already = arr.filter(a=>a.idCardNo).length;
+    rec.idCardNo = 'TUTY-' + ADMIN_ID_PREFIX[type] + '-' + String(already+1).padStart(3,'0');
+    syncAdminsToSheet();
+  }
+  printAdminIdCard(type, idx);
+}
+function printAdminIdCard(type, idx){
+  const rec = ADMIN_ARRAYS[type]()[idx];
+  if(!rec){ toast('பதிவு கிடைக்கவில்லை'); return; }
+  if(!idCardSettings.frontLink){ toast('முதலில் ஐடி கார்டு டெம்ப்ளேட் பதிவேற்றவும்'); return; }
+  const info = adminCardInfo(type, rec);
+  const c = idCardSettings.config;
+  const cardW = 480, cardH = Math.round(cardW/1.586);
+  const photoBox = `left:${c.photoLeft}%; top:${c.photoTop}%; width:${c.photoW}%; height:${c.photoH}%;`;
+  const textBox = `left:${c.textLeft}%; top:${c.textTop}%; width:${100-c.textLeft-4}%;`;
+  const frontHtml = `
+    <div class="card-face" style="background-image:url('${idCardSettings.frontLink}');">
+      ${rec.photoLink ? `<img class="photo-box" style="${photoBox}" src="${rec.photoLink}">` : ''}
+      <div class="text-box" style="${textBox}">
+        <div class="card-title admin-title-1">நாம் தமிழர் கட்சி</div>
+        <div class="card-title admin-title-2">தூத்துக்குடி மாவட்டம்</div>
+        <div class="card-row"><b>பெயர்:</b> ${esc(rec.name)}</div>
+        <div class="card-row"><b>பதவி:</b> ${esc(info.role)}</div>
+        <div class="card-row"><b>பொறுப்பு பகுதி:</b> ${esc(info.scope)}</div>
+        <div class="card-row card-id"><b>ஐடி எண்:</b> ${esc(rec.idCardNo)}</div>
+      </div>
+    </div>`;
+  const backHtml = idCardSettings.backLink
+    ? `<div class="card-face" style="background-image:url('${idCardSettings.backLink}');">
+         <div class="text-box" style="left:6%; bottom:6%; top:auto; width:88%;">
+           <div class="card-row" style="font-size:.72rem;">தொலைபேசி: ${esc(rec.phone||'')}</div>
+         </div>
+       </div>`
+    : '';
+  const w = window.open('', '_blank');
+  w.document.write(`<html><head><title>நிர்வாகி ஐடி அட்டை - ${esc(rec.idCardNo)}</title>
+    <style>
+      body{font-family:'Noto Sans Tamil',sans-serif; margin:0; padding:20px; display:flex; flex-direction:column; align-items:center; gap:16px; background:#eee;}
+      .card-face{position:relative; width:${cardW}px; height:${cardH}px; background-size:cover; background-position:center; border-radius:14px; box-shadow:0 4px 14px rgba(0,0,0,.25); overflow:hidden; page-break-after:always;}
+      .photo-box{position:absolute; object-fit:cover; border-radius:6px; border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.3);}
+      .text-box{position:absolute; color:#1A1512;}
+      .card-title{font-weight:900; color:#B31217; line-height:1.2;}
+      .admin-title-1{font-size:.9rem;}
+      .admin-title-2{font-size:.68rem; margin-bottom:4px;}
+      .card-row{font-size:.75rem; line-height:1.5;}
+      .card-id{font-weight:900; letter-spacing:.5px; margin-top:4px;}
+      @media print{ body{background:#fff;} .card-face{box-shadow:none;} }
+    </style></head><body>
+    ${frontHtml}${backHtml}
+    </body></html>`);
+  w.document.close();
+  setTimeout(()=>w.print(), 400);
+}
 /* login தேவையில்லாமல், பதிவு செய்தவரே தன் அட்டையை பார்க்க/பதிவிறக்க — மின்னஞ்சல்/
    WhatsApp மூலம் அவருக்கு அனுப்பப்படும் இணைப்பு இதைத்தான் திறக்கும். */
 async function showPublicCardView(id){
@@ -3436,6 +3538,7 @@ function renderAdminsTable(){
         <button class="btn sm outline" onclick="moveAdminTier('const',${idx},-1)" ${idx===0?'disabled':''}>↑</button>
         <button class="btn sm outline" onclick="moveAdminTier('const',${idx},1)" ${idx===admins.length-1?'disabled':''}>↓</button>
         <button class="btn sm outline" onclick="toggleAdminStatus('const',${idx})">${isActive(a)?'நிறுத்து':'ரிலீஸ்'}</button>
+        <button class="btn sm" onclick="handleAdminIdCard('const',${idx})">🪪 ஐடி</button>
         <button class="btn sm outline" onclick="editAdmin(${idx})">திருத்து</button>
         <button class="btn sm outline" onclick="delAdmin(${idx})">நீக்கு</button>
       </td></tr>`).join('');
@@ -3515,6 +3618,7 @@ function renderSubAdminsTable(){
       <td>${statusBadge(a)}</td>
       <td style="white-space:nowrap;">
         <button class="btn sm outline" onclick="toggleAdminStatus('sub',${idx})">${isActive(a)?'நிறுத்து':'ரிலீஸ்'}</button>
+        <button class="btn sm" onclick="handleAdminIdCard('sub',${idx})">🪪 ஐடி</button>
         <button class="btn sm outline" onclick="editSubAdmin(${idx})">திருத்து</button>
         <button class="btn sm outline" onclick="delSubAdmin(${idx})">நீக்கு</button>
       </td></tr>`;
@@ -3586,6 +3690,7 @@ function renderSuperAdminsTable(){
         <button class="btn sm outline" onclick="moveAdminTier('super',${idx},-1)" ${idx===0?'disabled':''}>↑</button>
         <button class="btn sm outline" onclick="moveAdminTier('super',${idx},1)" ${idx===superAdmins.length-1?'disabled':''}>↓</button>
         <button class="btn sm outline" onclick="toggleAdminStatus('super',${idx})">${isActive(a)?'நிறுத்து':'ரிலீஸ்'}</button>
+        <button class="btn sm" onclick="handleAdminIdCard('super',${idx})">🪪 ஐடி</button>
         <button class="btn sm outline" onclick="editSuperAdmin(${idx})">திருத்து</button>
         <button class="btn sm outline" onclick="delSuperAdmin(${idx})">நீக்கு</button>
       </td></tr>`).join('');
@@ -3659,6 +3764,7 @@ function renderStateAdminsTable(){
         <button class="btn sm outline" onclick="moveAdminTier('state',${idx},-1)" ${idx===0?'disabled':''}>↑</button>
         <button class="btn sm outline" onclick="moveAdminTier('state',${idx},1)" ${idx===stateAdmins.length-1?'disabled':''}>↓</button>
         <button class="btn sm outline" onclick="toggleAdminStatus('state',${idx})">${isActive(a)?'நிறுத்து':'ரிலீஸ்'}</button>
+        <button class="btn sm" onclick="handleAdminIdCard('state',${idx})">🪪 ஐடி</button>
         <button class="btn sm outline" onclick="editStateAdmin(${idx})">திருத்து</button>
         <button class="btn sm outline" onclick="delStateAdmin(${idx})">நீக்கு</button>
       </td></tr>`).join('');
@@ -3731,6 +3837,7 @@ function renderDistrictAdminsTable(){
         <button class="btn sm outline" onclick="moveAdminTier('district',${idx},-1)" ${idx===0?'disabled':''}>↑</button>
         <button class="btn sm outline" onclick="moveAdminTier('district',${idx},1)" ${idx===districtAdmins.length-1?'disabled':''}>↓</button>
         <button class="btn sm outline" onclick="toggleAdminStatus('district',${idx})">${isActive(a)?'நிறுத்து':'ரிலீஸ்'}</button>
+        <button class="btn sm" onclick="handleAdminIdCard('district',${idx})">🪪 ஐடி</button>
         <button class="btn sm outline" onclick="editDistrictAdmin(${idx})">திருத்து</button>
         <button class="btn sm outline" onclick="delDistrictAdmin(${idx})">நீக்கு</button>
       </td></tr>`).join('');
@@ -4308,6 +4415,13 @@ function doPost(e) {
       mailResult = sendMail_(ss, "petition", [data.toEmail], data.subject || "மனு", data.bodyText || "", data.ccEmails || []);
     }
     result.mail = mailResult;
+
+  } else if (data.type === 'admin_photo_upload') {
+    // நிர்வாகிகளுக்கான ஐடி அட்டை புகைப்படம் — admins_sync JSON-க்குள் base64 நேரடியாக
+    // வைக்காமல் (JSON blob பெரிதாகிவிடும்), Drive-இல் சேமித்து இணைப்பை மட்டும்
+    // திருப்பி அனுப்புகிறோம். இதை client-side-ஆக ரெக்கார்டில் வைத்து, மீண்டும்
+    // admins_sync மூலமே சேமிக்கப்படும்.
+    result.link = saveImageToDrive_("NTK Admin Photos", (data.name || "admin") + "-photo", data.dataUrl);
 
   } else if (data.type === 'member_new') {
     // பூத் குழு / இளைஞர் அணி உறுப்பினர் சேர்க்கை பதிவு — ஒவ்வொரு பூத்திலும் குறைந்தது
