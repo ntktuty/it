@@ -1290,7 +1290,13 @@ function go(tab){
   document.querySelectorAll('#navTabs button, #mobNav button').forEach(b=>{
     b.classList.toggle('active', b.dataset.tab===tab);
   });
-  window.scrollTo({top:0, behavior:'smooth'});
+  if(tab==='home'){
+    window.scrollTo({top:0, behavior:'smooth'});
+  } else {
+    const target = document.getElementById('p-'+tab);
+    const y = target.getBoundingClientRect().top + window.pageYOffset - 10;
+    window.scrollTo({top:Math.max(y,0), behavior:'smooth'});
+  }
   if(tab==='news'){ renderNews('all'); fetchNewsFromSheet(true); }
   if(tab==='blood'){ renderBloodPublicList(); fetchBloodFromSheet(true); }
   if(tab==='member') renderPublicAdmins();
