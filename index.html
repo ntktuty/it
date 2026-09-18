@@ -113,7 +113,7 @@ input,select,textarea{font-family:inherit;}
 .nav button:hover:not(.active){background:var(--cream-2); color:var(--ink);}
 
 main{max-width:1080px; margin:22px auto; padding:0 20px;}
-.panel{display:none;}
+.panel{display:none; scroll-margin-top:14px;}
 .panel.active{display:block; animation:fade .25s ease;}
 @keyframes fade{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;}}
 
@@ -1286,16 +1286,17 @@ function statusLabel(s){
 /* ================= NAV ================= */
 function go(tab){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-  document.getElementById('p-'+tab).classList.add('active');
+  const target = document.getElementById('p-'+tab);
+  target.classList.add('active');
   document.querySelectorAll('#navTabs button, #mobNav button').forEach(b=>{
     b.classList.toggle('active', b.dataset.tab===tab);
   });
   if(tab==='home'){
     window.scrollTo({top:0, behavior:'smooth'});
   } else {
-    const target = document.getElementById('p-'+tab);
-    const y = target.getBoundingClientRect().top + window.pageYOffset - 10;
-    window.scrollTo({top:Math.max(y,0), behavior:'smooth'});
+    requestAnimationFrame(()=>{
+      target.scrollIntoView({behavior:'smooth', block:'start'});
+    });
   }
   if(tab==='news'){ renderNews('all'); fetchNewsFromSheet(true); }
   if(tab==='blood'){ renderBloodPublicList(); fetchBloodFromSheet(true); }
