@@ -442,10 +442,6 @@ tr:hover td{background:var(--cream);}
       </div>
       <div class="tabbar-inner" id="newsFilter" style="margin-top:10px;">
         <button class="chip on" data-f="all">அனைத்தும்</button>
-        <button class="chip" data-f="news">செய்தி</button>
-        <button class="chip" data-f="event">நிகழ்வு</button>
-        <button class="chip" data-f="protest">போராட்டம்</button>
-        <button class="chip" data-f="scheme">திட்டங்கள்</button>
       </div>
     </div>
     <div class="news-grid" id="newsGrid"></div>
@@ -883,7 +879,7 @@ tr:hover td{background:var(--cream);}
           <form id="newsAddForm">
             <div class="grid2">
               <div class="field"><label>வகை *</label>
-                <select id="n_type"><option value="news">செய்தி</option><option value="event">நிகழ்வு</option><option value="protest">போராட்டம்</option><option value="scheme">திட்டம்</option></select>
+                <select id="n_type"></select>
               </div>
               <div class="field"><label>தேதி</label><input type="date" id="n_date"></div>
             </div>
@@ -1058,6 +1054,25 @@ tr:hover td{background:var(--cream);}
           <button class="btn sm outline" onclick="testWebhook()">🔌 Sheet இணைப்பு சோதி</button>
         </div>
         <div class="card">
+          <h2 style="font-size:1.05rem;">செய்தி / நிகழ்வு வகைகள்</h2>
+          <p class="hint">இங்கே புதிய வகைகளை சேர்க்கலாம் (எ.கா. "வெற்றி விழா", "அறிக்கை") — இவை உடனே "செய்தி/நிகழ்வு சேர்க்க" படிவத்திலும், பொது பக்க வடிகட்டியிலும் தோன்றும்.</p>
+          <div class="grid2">
+            <div class="field"><label>புதிய வகை பெயர்</label><input type="text" id="nc_label" placeholder="எ.கா. வெற்றி விழா"></div>
+            <div class="field"><label>நிற தீம்</label>
+              <select id="nc_color">
+                <option value="blue">நீலம்</option>
+                <option value="green">பச்சை</option>
+                <option value="amber">அம்பர்</option>
+                <option value="purple">ஊதா</option>
+                <option value="red">சிவப்பு</option>
+                <option value="teal">டீல்</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn sm" onclick="addNewsCategory()">+ வகை சேர்க்க</button>
+          <div id="newsCatList" style="margin-top:12px;"></div>
+        </div>
+        <div class="card">
           <h2 style="font-size:1.05rem;">Google Sheet + Drive உடன் இணைக்க வழிமுறை</h2>
           <p class="hint">1) script.google.com சென்று புதிய திட்டம் உருவாக்கவும். 2) கீழே உள்ள code-ஐ paste செய்யவும். 3) Deploy → Web App → Execute as "Me", Who has access "Anyone" செய்யவும். 4) முதல்முறை Deploy செய்யும்போது Drive/Sheet அனுமதி கேட்கும் — ஏற்றுக்கொள்ளவும். 5) கிடைக்கும் URL-ஐ மேலே பதிவு செய்யவும்.</p>
           <p class="hint">பிரச்சினை பதிவின் போது இணைக்கப்படும் புகைப்படம்/PDF, இந்த script மூலம் "NTK Thoothukudi Uploads" என்ற Drive கோப்புறையில் தானாக சேமிக்கப்பட்டு, அந்த லிங்க் Sheet-லும் இந்த தளத்திலும் தோன்றும்.</p>
@@ -1163,7 +1178,33 @@ let bloodSignature = { dataUrl:'', leaderName:'', designation:'மாவட்�
 // இது கோட்-லேயே நிலையாக இருக்க வேண்டும். புதிய URL வந்தால் இங்கே மாற்றவும்.
 const DEFAULT_WEBHOOK = 'https://script.google.com/macros/s/AKfycbzYxcezDldIGhY8v7IAsex0y2z7VinsIriwxYCoXmEDC6YoL1O_9XyTGASrZoW9Utb-/exec';
 // memberLink/driveLink கீழே fetchAppSettingsFromSheet() மூலம் ஷீட்டில் இருந்து வரும்.
-let settings = { memberLink:'', driveLink:'', webhook: DEFAULT_WEBHOOK, petitionSignee:'', petitionDesignation:'மாவட்ட செயலாளர், நாம் தமிழர் கட்சி — தூத்துக்குடி மாவட்டம்' };
+let settings = { memberLink:'', driveLink:'', webhook: DEFAULT_WEBHOOK, petitionSignee:'', petitionDesignation:'மாவட்ட செயலாளர், நாம் தமிழர் கட்சி — தூத்துக்குடி மாவட்டம்', newsCategories:null };
+/* செய்தி/நிகழ்வு வகைகள் — நான்கு இயல்புநிலை வகைகளுடன் தொடங்கி, "அமைப்புகள்" tab-ல்
+   நிர்வாகி விரும்பும் புதிய வகைகளையும் சேர்க்கலாம் (எ.கா. "வெற்றி விழா", "அறிக்கை").
+   settings.newsCategories நிரம்பாதவரை (null/காலி) கீழே உள்ள இயல்புநிலை நான்கும் பயன்படும். */
+const NEWS_COLOR_THEMES = {
+  blue:{color:'#2451A6', bg:'#E3ECFB'},
+  green:{color:'#1F6E52', bg:'#E4F2EC'},
+  amber:{color:'#C87F0A', bg:'#FBEDD6'},
+  purple:{color:'#7A3FA6', bg:'#F1E7FB'},
+  red:{color:'#B31217', bg:'#FBE4E5'},
+  teal:{color:'#0E7C86', bg:'#DFF3F5'}
+};
+const DEFAULT_NEWS_CATEGORIES = [
+  {key:'news', label:'செய்தி', theme:'blue'},
+  {key:'event', label:'நிகழ்வு', theme:'green'},
+  {key:'protest', label:'போராட்டம்', theme:'amber'},
+  {key:'scheme', label:'திட்டம்', theme:'purple'}
+];
+function getNewsCategories(){
+  return (settings.newsCategories && settings.newsCategories.length) ? settings.newsCategories : DEFAULT_NEWS_CATEGORIES;
+}
+function newsCatByKey(key){
+  return getNewsCategories().find(c=>c.key===key) || getNewsCategories()[0];
+}
+function newsCatTheme(key){
+  return NEWS_COLOR_THEMES[newsCatByKey(key).theme] || NEWS_COLOR_THEMES.blue;
+}
 // முதல்முறை (ஷீட்டில் இன்னும் ஒரு super admin-கூட இல்லாத போது) மட்டும் பயன்படும் தொடக்க
 // தலைமை நிர்வாகி கணக்கு. ஷீட்டில் ஏற்கனவே தரவு இருந்தால் fetchAdminsFromSheet() இதை மாற்றிவிடும்.
 let superAdmins = [{ name:'தலைமை நிர்வாகம்', phone:'', username:'admin', password:'ntk2026' }];
@@ -1269,7 +1310,7 @@ function genTicket(){
   return `NTKTUTY-${ymd}-${pad(todayCount,3)}`;
 }
 function newsTypeLabel(t){
-  return t==='event' ? 'நிகழ்வு' : t==='protest' ? 'போராட்டம்' : t==='scheme' ? 'திட்டம்' : 'செய்தி';
+  return newsCatByKey(t).label;
 }
 function fmtDate(iso){
   if(!iso) return '—';
@@ -1348,7 +1389,7 @@ function renderHomeNewsPreview(){
   if(!latest.length){ el.innerHTML = `<p class="hint">இன்னும் செய்திகள் இல்லை.</p>`; return; }
   el.innerHTML = latest.map(n=>`
     <div style="padding:10px 0; border-bottom:1px solid var(--line);">
-      <div style="font-size:.7rem; font-weight:800; color:${n.type==='event'?'#1F6E52':n.type==='protest'?'#C87F0A':n.type==='scheme'?'#7A3FA6':'#2451A6'};">
+      <div style="font-size:.7rem; font-weight:800; color:${newsCatTheme(n.type).color};">
         ${newsTypeLabel(n.type)} · ${fmtDate(n.date)}
       </div>
       <div style="font-weight:700; font-size:.92rem;">${esc(n.title)}</div>
@@ -1655,13 +1696,71 @@ function renderNews(filter){
     return `
     <div class="news-card">
       ${videoBlock}
-      <span class="tag tag-${n.type}">${newsTypeLabel(n.type)}</span>
+      <span class="tag" style="background:${newsCatTheme(n.type).bg}; color:${newsCatTheme(n.type).color};">${newsTypeLabel(n.type)}</span>
       <h3>${esc(n.title)}</h3>
       <div class="date">${fmtDate(n.date)}</div>
       <p>${esc(n.desc||'')}</p>
     </div>`;
   }).join('');
   window.currentNewsQueue = queue;
+}
+
+/* செய்தி/நிகழ்வு வகைகள் — "வகை சேர்க்க" படிவம், பொது பக்க வடிகட்டி (chips), மற்றும்
+   "அமைப்புகள்" tab-ல் உள்ள வகை பட்டியல் ஆகிய மூன்றும் இதிலிருந்தே உருவாகின்றன. */
+function renderNewsTypeSelect(){
+  const sel = document.getElementById('n_type');
+  if(!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = getNewsCategories().map(c=>`<option value="${c.key}">${esc(c.label)}</option>`).join('');
+  if(getNewsCategories().some(c=>c.key===prev)) sel.value = prev;
+}
+function renderNewsFilterChips(){
+  const wrap = document.getElementById('newsFilter');
+  if(!wrap) return;
+  const activeChip = wrap.querySelector('.chip.on');
+  const activeF = activeChip ? activeChip.dataset.f : 'all';
+  wrap.innerHTML = `<button class="chip" data-f="all">அனைத்தும்</button>` +
+    getNewsCategories().map(c=>`<button class="chip" data-f="${c.key}">${esc(c.label)}</button>`).join('');
+  const stillThere = wrap.querySelector(`.chip[data-f="${activeF}"]`);
+  (stillThere || wrap.querySelector('.chip')).classList.add('on');
+}
+function renderNewsCatAdminList(){
+  const el = document.getElementById('newsCatList');
+  if(!el) return;
+  el.innerHTML = getNewsCategories().map(c=>{
+    const th = newsCatTheme(c.key);
+    return `<div style="display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid var(--line);">
+      <span class="tag" style="background:${th.bg}; color:${th.color}; margin:0;">${esc(c.label)}</span>
+      <button class="btn sm outline" style="margin-left:auto; padding:4px 10px;" onclick="removeNewsCategory('${c.key}')">🗑️ நீக்கு</button>
+    </div>`;
+  }).join('');
+}
+function renderNewsCategoryUI(){
+  renderNewsTypeSelect();
+  renderNewsFilterChips();
+  renderNewsCatAdminList();
+}
+function addNewsCategory(){
+  const labelInput = document.getElementById('nc_label');
+  const themeSelect = document.getElementById('nc_color');
+  const label = labelInput.value.trim();
+  if(!label){ toast('வகை பெயரை உள்ளிடவும்'); return; }
+  const cats = getNewsCategories().slice();
+  cats.push({ key: 'c'+Date.now().toString(36), label, theme: themeSelect.value || 'blue' });
+  settings.newsCategories = cats;
+  labelInput.value = '';
+  renderNewsCategoryUI();
+  syncAppSettingsToSheet();
+  toast('புதிய வகை சேர்க்கப்பட்டது');
+}
+function removeNewsCategory(key){
+  const cats = getNewsCategories();
+  if(cats.length <= 1){ toast('குறைந்தது ஒரு வகையாவது இருக்க வேண்டும்'); return; }
+  if(!confirm('இந்த வகையை நீக்கவா? ஏற்கனவே இந்த வகையில் உள்ள செய்திகள்/நிகழ்வுகள் இயல்புநிலை வகையில் காட்டப்படும்.')) return;
+  settings.newsCategories = cats.filter(c=>c.key!==key);
+  renderNewsCategoryUI();
+  syncAppSettingsToSheet();
+  toast('வகை நீக்கப்பட்டது');
 }
 
 /* --- Reels-style modal: plays a short, auto-advances to the next one when it ends --- */
@@ -3960,6 +4059,7 @@ function loadSettingsForm(){
   document.getElementById('s_petition_designation').value = settings.petitionDesignation||'';
   document.getElementById('s_webhook').value = settings.webhook||'';
   document.getElementById('gsCode').textContent = GS_CODE;
+  renderNewsCategoryUI();
 }
 function saveSettings(){
   settings.memberLink = document.getElementById('s_memberlink').value.trim();
@@ -3985,7 +4085,7 @@ function syncAppSettingsToSheet(){
   fetch(settings.webhook, {
     method:'POST', mode:'no-cors',
     headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ type:'app_settings_sync', memberLink: settings.memberLink, driveLink: settings.driveLink, petitionSignee: settings.petitionSignee, petitionDesignation: settings.petitionDesignation })
+    body: JSON.stringify({ type:'app_settings_sync', memberLink: settings.memberLink, driveLink: settings.driveLink, petitionSignee: settings.petitionSignee, petitionDesignation: settings.petitionDesignation, newsCategories: getNewsCategories() })
   }).catch(()=>{});
 }
 async function fetchAppSettingsFromSheet(silent){
@@ -3999,8 +4099,10 @@ async function fetchAppSettingsFromSheet(silent){
       if(typeof data.driveLink === 'string') settings.driveLink = data.driveLink;
       if(typeof data.petitionSignee === 'string' && data.petitionSignee) settings.petitionSignee = data.petitionSignee;
       if(typeof data.petitionDesignation === 'string' && data.petitionDesignation) settings.petitionDesignation = data.petitionDesignation;
+      if(Array.isArray(data.newsCategories) && data.newsCategories.length) settings.newsCategories = data.newsCategories;
       const ml = document.getElementById('memberLink');
       if(ml) ml.href = settings.memberLink || '#';
+      renderNewsCategoryUI();
       const formOpen = document.getElementById('s_memberlink');
       if(formOpen) loadSettingsForm();
       if(!silent) toast('அமைப்புகள் புதுப்பிக்கப்பட்டன');
@@ -4261,6 +4363,9 @@ function doPost(e) {
     if (data.petitionSignee) appSetSh.getRange("B3").setValue(data.petitionSignee);
     appSetSh.getRange("A4").setValue("petitionDesignation");
     if (data.petitionDesignation) appSetSh.getRange("B4").setValue(data.petitionDesignation);
+    // செய்தி/நிகழ்வு வகைகள் (இயல்புநிலை 4 + நிர்வாகி சேர்த்தவை) — காலியான பட்டியல்
+    // தவறுதலாக வந்தால் ஏற்கனவே சேமிக்கப்பட்டதை அழிக்காமல் safeSetJsonList_ பாதுகாக்கும்.
+    safeSetJsonList_(appSetSh, "A5", "B5", "newsCategories", data.newsCategories);
 
   } else if (data.type === 'issue_new' || data.type === 'issue_status' || data.type === 'issue_note') {
     // One row per ticket in "Issues", updated in place — this is what lets every device
@@ -4698,6 +4803,7 @@ function doGet(e) {
       try { result.driveLink = appSetSh.getRange("B2").getValue() || ""; } catch (err) {}
       try { result.petitionSignee = appSetSh.getRange("B3").getValue() || ""; } catch (err) {}
       try { result.petitionDesignation = appSetSh.getRange("B4").getValue() || ""; } catch (err) {}
+      try { result.newsCategories = JSON.parse(appSetSh.getRange("B5").getValue() || "[]"); } catch (err) { result.newsCategories = []; }
     }
 
   } else if (type === 'chat') {
@@ -5059,7 +5165,7 @@ document.getElementById('importFile').addEventListener('change', e=>{
       if(d.superAdmins && d.superAdmins.length) superAdmins = d.superAdmins;
       stateAdmins = d.stateAdmins||[]; districtAdmins = d.districtAdmins||[];
       news = d.news||[]; bloodRequests = d.bloodRequests||[]; bloodSignature = d.bloodSignature||bloodSignature; settings = Object.assign(settings, d.settings||{});
-      renderAdminAll(); renderHero(); renderConstList(); renderHomeNewsPreview(); renderBloodPublicList();
+      renderAdminAll(); renderHero(); renderConstList(); renderHomeNewsPreview(); renderBloodPublicList(); renderNewsCategoryUI();
       // localStorage இல்லை என்பதால், மீட்டெடுத்த இந்த backup-ஐ உடனே Sheet-க்கும் தள்ளிவிடுகிறோம் —
       // இல்லையெனில் அடுத்த reload-ல் இது தொலைந்துவிடும்.
       syncAdminsToSheet(); syncNewsToSheet(); syncBloodToSheet(); syncBloodSignatureToSheet(); syncAppSettingsToSheet();
@@ -5082,6 +5188,7 @@ function esc(s){
 
 /* ================= INIT ================= */
 fillConstSelects();
+renderNewsCategoryUI();
 renderHero();
 renderConstList();
 renderHomeNewsPreview();
