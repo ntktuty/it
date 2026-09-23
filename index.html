@@ -1724,14 +1724,34 @@ function renderNewsFilterChips(){
   const stillThere = wrap.querySelector(`.chip[data-f="${activeF}"]`);
   (stillThere || wrap.querySelector('.chip')).classList.add('on');
 }
+let newsCatEditingKey = null;
+function newsThemeName(k){
+  return ({blue:'நீலம்',green:'பச்சை',amber:'அம்பர்',purple:'ஊதா',red:'சிவப்பு',teal:'டீல்'})[k] || k;
+}
 function renderNewsCatAdminList(){
   const el = document.getElementById('newsCatList');
   if(!el) return;
-  el.innerHTML = getNewsCategories().map(c=>{
+  const cats = getNewsCategories();
+  el.innerHTML = cats.map((c,i)=>{
     const th = newsCatTheme(c.key);
-    return `<div style="display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid var(--line);">
+    if(newsCatEditingKey === c.key){
+      return `<div style="display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid var(--line); flex-wrap:wrap;">
+        <input type="text" id="nc_edit_label_${c.key}" value="${esc(c.label)}" style="flex:1; min-width:120px;">
+        <select id="nc_edit_color_${c.key}">
+          ${Object.keys(NEWS_COLOR_THEMES).map(k=>`<option value="${k}" ${c.theme===k?'selected':''}>${newsThemeName(k)}</option>`).join('')}
+        </select>
+        <button class="btn sm" onclick="saveNewsCategoryEdit('${c.key}')">✅ சேமி</button>
+        <button class="btn sm outline" onclick="cancelNewsCategoryEdit()">✖ ரத்து</button>
+      </div>`;
+    }
+    return `<div style="display:flex; align-items:center; gap:6px; padding:6px 0; border-bottom:1px solid var(--line); flex-wrap:wrap;">
       <span class="tag" style="background:${th.bg}; color:${th.color}; margin:0;">${esc(c.label)}</span>
-      <button class="btn sm outline" style="margin-left:auto; padding:4px 10px;" onclick="removeNewsCategory('${c.key}')">🗑️ நீக்கு</button>
+      <div style="display:flex; gap:2px; margin-left:auto;">
+        <button class="btn sm outline" style="padding:4px 8px;" onclick="moveNewsCategory('${c.key}',-1)" ${i===0?'disabled':''}>⬆️</button>
+        <button class="btn sm outline" style="padding:4px 8px;" onclick="moveNewsCategory('${c.key}',1)" ${i===cats.length-1?'disabled':''}>⬇️</button>
+        <button class="btn sm outline" style="padding:4px 10px;" onclick="startNewsCategoryEdit('${c.key}')">✏️ திருத்து</button>
+        <button class="btn sm outline" style="padding:4px 10px;" onclick="removeNewsCategory('${c.key}')">🗑️ நீக்கு</button>
+      </div>
     </div>`;
   }).join('');
 }
@@ -1752,6 +1772,35 @@ function addNewsCategory(){
   renderNewsCategoryUI();
   syncAppSettingsToSheet();
   toast('புதிய வகை சேர்க்கப்பட்டது');
+}
+function startNewsCategoryEdit(key){
+  newsCatEditingKey = key;
+  renderNewsCatAdminList();
+}
+function cancelNewsCategoryEdit(){
+  newsCatEditingKey = null;
+  renderNewsCatAdminList();
+}
+function saveNewsCategoryEdit(key){
+  const labelInput = document.getElementById('nc_edit_label_'+key);
+  const colorSelect = document.getElementById('nc_edit_color_'+key);
+  const label = labelInput.value.trim();
+  if(!label){ toast('வகை பெயரை உள்ளிடவும்'); return; }
+  settings.newsCategories = getNewsCategories().map(c => c.key===key ? Object.assign({}, c, { label, theme: colorSelect.value }) : c);
+  newsCatEditingKey = null;
+  renderNewsCategoryUI();
+  syncAppSettingsToSheet();
+  toast('வகை புதுப்பிக்கப்பட்டது');
+}
+function moveNewsCategory(key, dir){
+  const cats = getNewsCategories().slice();
+  const idx = cats.findIndex(c=>c.key===key);
+  const newIdx = idx + dir;
+  if(idx===-1 || newIdx < 0 || newIdx >= cats.length) return;
+  const tmp = cats[idx]; cats[idx] = cats[newIdx]; cats[newIdx] = tmp;
+  settings.newsCategories = cats;
+  renderNewsCategoryUI();
+  syncAppSettingsToSheet();
 }
 function removeNewsCategory(key){
   const cats = getNewsCategories();
