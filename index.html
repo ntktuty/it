@@ -111,6 +111,14 @@ input,select,textarea{font-family:inherit;}
 }
 .nav button.active{background:var(--red); color:var(--cream);}
 .nav button:hover:not(.active){background:var(--cream-2); color:var(--ink);}
+.nav a.reels-btn{
+  border:none; padding:11px 16px; border-radius:11px;
+  font-size:.86rem; font-weight:800; white-space:nowrap; flex:1;
+  text-decoration:none; display:flex; align-items:center; justify-content:center; gap:4px;
+  background:linear-gradient(135deg,var(--red) 0%,var(--amber) 100%); color:#fff;
+  transition:.15s;
+}
+.nav a.reels-btn:hover{ filter:brightness(1.08); }
 
 main{max-width:1080px; margin:22px auto; padding:0 20px;}
 .panel{display:none; scroll-margin-top:14px;}
@@ -270,6 +278,11 @@ tr:hover td{background:var(--cream);}
   .mobnav button{flex:1; border:none; background:none; padding:8px 2px 7px; font-size:.6rem; color:var(--grey); font-weight:700; white-space:nowrap;}
   .mobnav button.active{color:var(--red);}
   .mobnav .ic{display:block; font-size:1.1rem; margin-bottom:2px;}
+  .mobnav a.reels-btn{
+    flex:1; padding:8px 2px 7px; font-size:.6rem; font-weight:800; white-space:nowrap;
+    text-decoration:none; display:flex; flex-direction:column; align-items:center;
+    background:linear-gradient(135deg,var(--red) 0%,var(--amber) 100%); color:#fff;
+  }
 }
 
 .footer-note{text-align:center; color:var(--grey); font-size:.78rem; padding:20px; opacity:.8;}
@@ -339,6 +352,7 @@ tr:hover td{background:var(--cream);}
 <div class="navwrap">
   <div class="nav" id="navTabs">
     <button data-tab="home" class="active">முகப்பு</button>
+    <a href="https://ntktuty.github.io/reels/" target="_blank" rel="noopener" class="reels-btn">🎬 ரீல்ஸ்</a>
     <button data-tab="submit">பிரச்சினை பதிவு</button>
     <button data-tab="track">நிலை கண்காணிப்பு</button>
     <button data-tab="news">செய்தி/நிகழ்வு</button>
@@ -691,6 +705,13 @@ tr:hover td{background:var(--cream);}
           </div>
           <div class="field"><label>புதிய நடவடிக்கை குறிப்பு (விருப்பம்)</label><input type="text" id="ie_note" placeholder="எ.கா. VAO அலுவலகத்திற்கு அனுப்பப்பட்டது"></div>
           <div id="ie_history" style="margin:8px 0 14px;"></div>
+          <div class="field">
+            <label>முடிவு புகைப்படங்கள் <span class="hint" style="margin:0;">(விருப்பம் — கோரிக்கை நிறைவேறிய பின் ஆதாரப் புகைப்படங்கள்)</span></label>
+            <p class="hint" style="margin-top:0;">இவை Google Drive-ல் சேமிக்கப்பட்டு, இந்த பதிவுடன் என்றும் பார்வை-லிங்காக காணக்கிடைக்கும்.</p>
+            <input type="file" id="ie_resolution_file" accept="image/*" multiple>
+            <button type="button" class="btn sm outline" style="margin-top:8px;" onclick="uploadResolutionPhotos()">☁️ Drive-ல் பதிவேற்று</button>
+            <div id="ie_resolution_list" style="margin-top:8px;"></div>
+          </div>
           <button class="btn sm" onclick="saveIssueEdit()">💾 சேமி</button>
           <button class="btn sm outline" onclick="closeIssueEdit()">ரத்து</button>
         </div>
@@ -1096,6 +1117,7 @@ tr:hover td{background:var(--cream);}
 
 <div class="mobnav" id="mobNav">
   <button data-tab="home" class="active"><span class="ic">🏠</span>முகப்பு</button>
+  <a href="https://ntktuty.github.io/reels/" target="_blank" rel="noopener" class="reels-btn"><span class="ic">🎬</span>ரீல்ஸ்</a>
   <button data-tab="submit"><span class="ic">📝</span>பதிவு</button>
   <button data-tab="track"><span class="ic">🔍</span>நிலை</button>
   <button data-tab="news"><span class="ic">📰</span>செய்தி</button>
@@ -1136,9 +1158,11 @@ tr:hover td{background:var(--cream);}
     <div class="field"><label>இணைக்க வேண்டிய படங்கள்</label><div id="pet_attachments"></div></div>
     <div class="field">
       <label>கையொப்பமிட்ட / சீல் செய்த மனு <span class="hint" style="margin:0;">(விருப்பம் — Scan/புகைப்படம் அல்லது PDF)</span></label>
-      <p class="hint" style="margin-top:0;">இதை பதிவேற்றினால், மின்னஞ்சலில் இதுவே உண்மையான இணைப்பாக (attachment) அனுப்பப்படும் — பதிவேற்றவில்லை எனில் மேலே உள்ள உரையே மின்னஞ்சல் உள்ளடக்கமாக செல்லும்.</p>
+      <p class="hint" style="margin-top:0;">இதை பதிவேற்றினால், மின்னஞ்சலில் இதுவே உண்மையான இணைப்பாக (attachment) அனுப்பப்படும். "Drive-ல் சேமி" அழுத்தினால், இந்த scan Google Drive-ல் நிரந்தரமாக சேமிக்கப்பட்டு, அதன் பார்வை-லிங்க் இந்த பதிவுடன் என்றும் காணக்கிடைக்கும்.</p>
       <input type="file" id="pet_signed_file" accept="image/*,.pdf">
       <div id="pet_signed_preview" style="margin-top:6px;"></div>
+      <button type="button" class="btn sm outline" style="margin-top:8px;" onclick="saveSignedPetitionToDrive()">☁️ கையொப்பமிட்ட மனுவை Drive-ல் சேமி</button>
+      <div id="pet_signed_saved_list" style="margin-top:8px;"></div>
     </div>
     <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
       <button type="button" class="btn sm" onclick="generatePetitionPDF()">📄 மனு + இணைப்புகள் — PDF உருவாக்கு</button>
@@ -1644,6 +1668,15 @@ function attachmentStrip(rec){
     `</div>` : '';
   return thumbs + driveLinks;
 }
+function resolutionPhotoStrip(rec){
+  if(!rec.resolutionPhotos || !rec.resolutionPhotos.length) return '';
+  return `<div style="margin-top:10px;">
+    <div class="hint" style="font-weight:700; margin-bottom:4px;">✅ கோரிக்கை நிறைவேறிய பின் புகைப்படங்கள்:</div>
+    <div style="font-size:.85rem;">` + rec.resolutionPhotos.map(a=>
+      `<div><a href="${a.driveLink}" target="_blank" rel="noopener">🖼️ ${esc(a.name)}</a></div>`
+    ).join('') + `</div>
+  </div>`;
+}
 async function trackTicket(){
   const val = document.getElementById('trackInput').value.trim().toUpperCase();
   const el = document.getElementById('trackResult');
@@ -1660,6 +1693,7 @@ async function trackTicket(){
       </div>
       <div class="desc">${esc(rec.description)}</div>
       ${attachmentStrip(rec)}
+      ${resolutionPhotoStrip(rec)}
       ${rec.actionNotes.length ? rec.actionNotes.map(n=>`<div class="action-note">✅ <b>${fmtDate(n.date)}:</b> ${esc(n.note)}</div>`).join('') : '<p class="hint">இதுவரை நடவடிக்கை பதிவு செய்யப்படவில்லை.</p>'}
     </div>`;
 }
@@ -3140,7 +3174,11 @@ function renderAdminIssues(){
       <td>${esc(rec.phone)}</td>
       <td>${esc(rec.category||'-')}</td>
       <td>${statusLabel(rec.status)}</td>
-      <td style="max-width:180px; white-space:normal;">${lastNote ? esc(lastNote.note) : '—'}</td>
+      <td style="max-width:180px; white-space:normal;">
+        ${lastNote ? esc(lastNote.note) : '—'}
+        ${(rec.signedPetition&&rec.signedPetition.length) ? `<br><a href="${rec.signedPetition[rec.signedPetition.length-1].driveLink}" target="_blank" rel="noopener" style="font-size:.78rem;">☁️ கையொப்பமிட்ட மனு</a>` : ''}
+        ${(rec.resolutionPhotos&&rec.resolutionPhotos.length) ? `<br><a href="${rec.resolutionPhotos[0].driveLink}" target="_blank" rel="noopener" style="font-size:.78rem;">🖼️ முடிவு புகைப்படங்கள் (${rec.resolutionPhotos.length})</a>` : ''}
+      </td>
       <td>${fmtDate(rec.createdAt)}</td>
       <td>${fmtDate(updated)}</td>
       <td style="white-space:nowrap;">
@@ -3217,7 +3255,44 @@ function openIssueEdit(tno){
   document.getElementById('ie_note').value = '';
   document.getElementById('ie_history').innerHTML = (rec.actionNotes||[]).map(n=>
     `<div class="action-note">✅ <b>${fmtDate(n.date)}:</b> ${esc(n.note)}</div>`).join('') || '<p class="hint" style="margin:4px 0;">இதுவரை நடவடிக்கை குறிப்புகள் இல்லை.</p>';
+  document.getElementById('ie_resolution_file').value = '';
+  renderResolutionPhotosList();
   document.getElementById('issueEditModal').classList.add('open');
+}
+function renderResolutionPhotosList(){
+  const el = document.getElementById('ie_resolution_list');
+  if(!el) return;
+  const rec = findIssue(editingIssueTno);
+  const list = (rec && rec.resolutionPhotos) || [];
+  el.innerHTML = list.length
+    ? list.map(a=>`<div class="hint">🖼️ <a href="${a.driveLink}" target="_blank" rel="noopener">${esc(a.name)}</a></div>`).join('')
+    : '<p class="hint" style="margin:4px 0;">இதுவரை முடிவு புகைப்படங்கள் இல்லை.</p>';
+}
+async function uploadResolutionPhotos(){
+  const rec = findIssue(editingIssueTno); if(!rec) return;
+  const input = document.getElementById('ie_resolution_file');
+  const files = Array.from(input.files||[]);
+  if(!files.length){ toast('முதலில் புகைப்படங்களை தேர்ந்தெடுக்கவும்'); return; }
+  if(!settings.webhook){ toast('இணைப்பு அமைக்கப்படவில்லை'); return; }
+  toast('Drive-ல் பதிவேற்றப்படுகிறது...');
+  try{
+    const attachments = await Promise.all(files.map(async f=>({ name:f.name, dataUrl: await fileToDataUrl(f) })));
+    const res = await fetch(settings.webhook, {
+      method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({ type:'issue_resolution_photo', ticketNo: rec.ticketNo, attachments })
+    });
+    const data = await res.json();
+    if(data && Array.isArray(data.resolutionPhotos)){
+      rec.resolutionPhotos = data.resolutionPhotos;
+      persistAll();
+      input.value = '';
+      renderResolutionPhotosList();
+      refreshAttachmentViews();
+      toast('✅ முடிவு புகைப்படங்கள் Drive-ல் சேமிக்கப்பட்டன');
+    } else {
+      toast('பதிவேற்ற முடியவில்லை — மீண்டும் முயற்சிக்கவும்');
+    }
+  }catch(err){ toast('இணைப்பு பிழை — மீண்டும் முயற்சிக்கவும்'); }
 }
 function closeIssueEdit(){ document.getElementById('issueEditModal').classList.remove('open'); editingIssueTno=null; }
 function saveIssueEdit(){
@@ -3420,6 +3495,37 @@ ${rec.description}
       (others.length ? `<p class="hint" style="margin-top:6px;">பின்வரும் ஆவணங்கள் படம் இல்லாததால் தானாக PDF-ல் சேராது — தேவைப்பட்டால் தனியாக இணைக்கவும்: ${others.map(a=>esc(a.name)).join(', ')}</p>` : '');
   }
   document.getElementById('petitionModal').style.display = 'flex';
+  renderSignedPetitionList();
+}
+function renderSignedPetitionList(){
+  const el = document.getElementById('pet_signed_saved_list');
+  if(!el) return;
+  const rec = findIssue(petitionTicket);
+  const list = (rec && rec.signedPetition) || [];
+  el.innerHTML = list.length
+    ? list.map(a=>`<div class="hint">☁️ <a href="${a.driveLink}" target="_blank" rel="noopener">${esc(a.name)}</a> — Drive-ல் சேமிக்கப்பட்டது</div>`).join('')
+    : '';
+}
+async function saveSignedPetitionToDrive(){
+  if(!petitionTicket){ toast('மனு பதிவு தேர்வு செய்யப்படவில்லை'); return; }
+  if(!petitionSignedFile){ toast('முதலில் ஒரு கோப்பை தேர்ந்தெடுக்கவும்'); return; }
+  if(!settings.webhook){ toast('இணைப்பு அமைக்கப்படவில்லை'); return; }
+  toast('Drive-ல் சேமிக்கப்படுகிறது...');
+  try{
+    const res = await fetch(settings.webhook, {
+      method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({ type:'issue_signed_petition', ticketNo: petitionTicket, attachments:[{name:petitionSignedFile.name, dataUrl:petitionSignedFile.dataUrl}] })
+    });
+    const data = await res.json();
+    if(data && Array.isArray(data.signedPetition)){
+      const rec = findIssue(petitionTicket);
+      if(rec){ rec.signedPetition = data.signedPetition; persistAll(); }
+      renderSignedPetitionList();
+      toast('✅ கையொப்பமிட்ட மனு Drive-ல் சேமிக்கப்பட்டது');
+    } else {
+      toast('சேமிக்க முடியவில்லை — மீண்டும் முயற்சிக்கவும்');
+    }
+  }catch(err){ toast('இணைப்பு பிழை — மீண்டும் முயற்சிக்கவும்'); }
 }
 function closePetitionModal(){
   savePetitionDraft(); // Cancel ஆனாலும் Generate ஆனாலும், திருத்தங்கள் இழக்காமல் இருக்க
@@ -4422,7 +4528,7 @@ function doPost(e) {
     // seeing the issues it personally submitted.
     var sh2 = ss.getSheetByName("Issues") || ss.insertSheet("Issues");
     if (sh2.getLastRow() === 0) {
-      sh2.appendRow(["தேதி","பதிவு எண்","பெயர்","தொலைபேசி","தொகுதி","ஊர்/பகுதி","வகை","விவரம்","நிலை","குறிப்புகள் (JSON)","இணைப்பு லிங்க்","இணைப்பு பெயர்","ஒதுக்கப்பட்ட நிர்வாகி","ஒதுக்கப்பட்ட நிர்வாகி தொலைபேசி"]);
+      sh2.appendRow(["தேதி","பதிவு எண்","பெயர்","தொலைபேசி","தொகுதி","ஊர்/பகுதி","வகை","விவரம்","நிலை","குறிப்புகள் (JSON)","இணைப்பு லிங்க்","இணைப்பு பெயர்","ஒதுக்கப்பட்ட நிர்வாகி","ஒதுக்கப்பட்ட நிர்வாகி தொலைபேசி","மனு வரைவு (JSON)","கையொப்பமிட்ட மனு (JSON)","முடிவு புகைப்படங்கள் (JSON)"]);
     }
 
     var driveLinks = [];
@@ -4531,6 +4637,46 @@ function doPost(e) {
           result.ok = true;
           break;
         }
+      }
+    }
+
+  } else if (data.type === 'issue_signed_petition' || data.type === 'issue_resolution_photo') {
+    // "மனுவாக மாற்று" படிவத்தில் பதிவேற்றப்படும் கையொப்பமிட்ட மனு scan, மற்றும்
+    // கோரிக்கை முடிந்தபின் பதிவேற்றப்படும் ஆதாரப் புகைப்படங்கள் — இரண்டையும்
+    // Drive-ல் தனித்தனி கோப்புறையில் சேமித்து, Issues ஷீட்டில் ஒரு புதிய column-ல்
+    // (JSON பட்டியலாக) நிரந்தரமாக இணைக்கிறோம், இதனால் எந்த சாதனத்திலும் பார்க்கலாம்.
+    var lpSh = ss.getSheetByName("Issues");
+    var lpTargetCol = data.type === 'issue_signed_petition' ? 16 : 17;
+    var lpFolderName = data.type === 'issue_signed_petition' ? "NTK Thoothukudi Signed Petitions" : "NTK Thoothukudi Resolution Photos";
+    var lpOutKey = data.type === 'issue_signed_petition' ? 'signedPetition' : 'resolutionPhotos';
+    result[lpOutKey] = [];
+    if (lpSh && lpSh.getLastRow() > 1) {
+      ensureSheetHeaders_(lpSh, ["தேதி","பதிவு எண்","பெயர்","தொலைபேசி","தொகுதி","ஊர்/பகுதி","வகை","விவரம்","நிலை","குறிப்புகள் (JSON)","இணைப்பு லிங்க்","இணைப்பு பெயர்","ஒதுக்கப்பட்ட நிர்வாகி","ஒதுக்கப்பட்ட நிர்வாகி தொலைபேசி","மனு வரைவு (JSON)","கையொப்பமிட்ட மனு (JSON)","முடிவு புகைப்படங்கள் (JSON)"]);
+      var lpIds = lpSh.getRange(2, 2, lpSh.getLastRow() - 1, 1).getValues();
+      var lpRowIdx = -1;
+      for (var lp = 0; lp < lpIds.length; lp++) {
+        if (String(lpIds[lp][0]) === String(data.ticketNo)) { lpRowIdx = lp + 2; break; }
+      }
+      if (lpRowIdx !== -1) {
+        var lpFolder = getOrCreateFolder(lpFolderName);
+        var lpNewItems = [];
+        (data.attachments || []).forEach(function (att) {
+          try {
+            var lpParts = att.dataUrl.split(',');
+            var lpMime = lpParts[0].match(/data:(.*);base64/)[1];
+            var lpBytes = Utilities.base64Decode(lpParts[1]);
+            var lpBlob = Utilities.newBlob(lpBytes, lpMime, data.ticketNo + '-' + att.name);
+            var lpFile = lpFolder.createFile(lpBlob);
+            lpFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+            lpNewItems.push({ name: att.name, driveLink: lpFile.getUrl() });
+          } catch (err) { /* skip failed file */ }
+        });
+        var lpCell = lpSh.getRange(lpRowIdx, lpTargetCol);
+        var lpExisting = [];
+        try { lpExisting = JSON.parse(lpCell.getValue() || "[]"); } catch (err) { lpExisting = []; }
+        var lpMerged = lpExisting.concat(lpNewItems);
+        lpCell.setValue(JSON.stringify(lpMerged));
+        result[lpOutKey] = lpMerged;
       }
     }
 
@@ -4766,7 +4912,7 @@ function doGet(e) {
     var issueSh = ss.getSheetByName("Issues");
     var outIssues = [];
     if (issueSh && issueSh.getLastRow() > 1) {
-      var issueCols = Math.min(issueSh.getLastColumn(), 15);
+      var issueCols = Math.min(issueSh.getLastColumn(), 17);
       var rows = issueSh.getRange(2, 1, issueSh.getLastRow() - 1, issueCols).getValues();
       rows.forEach(function (r) {
         if (!r[1]) return; // skip blank rows (no ticket no.)
@@ -4782,11 +4928,15 @@ function doGet(e) {
         var assignedTo = r[12] ? { name: r[12], phone: r[13] || "" } : null;
         var petitionDraft = null;
         try { petitionDraft = r[14] ? JSON.parse(r[14]) : null; } catch (err) { petitionDraft = null; }
+        var signedPetition = [];
+        try { signedPetition = r[15] ? JSON.parse(r[15]) : []; } catch (err) { signedPetition = []; }
+        var resolutionPhotos = [];
+        try { resolutionPhotos = r[16] ? JSON.parse(r[16]) : []; } catch (err) { resolutionPhotos = []; }
         outIssues.push({
           ticketNo: r[1], name: r[2], phone: r[3], constituency: r[4], area: r[5] || "",
           category: r[6], description: r[7], status: r[8] || "new",
           createdAt: createdAt, actionNotes: notesArr, attachments: attachments, assignedTo: assignedTo,
-          petitionDraft: petitionDraft
+          petitionDraft: petitionDraft, signedPetition: signedPetition, resolutionPhotos: resolutionPhotos
         });
       });
     }
