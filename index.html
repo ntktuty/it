@@ -708,6 +708,14 @@ tr:hover td{background:var(--cream);}
             <div class="field"><label>செல்</label><input type="tel" id="ie_phone"></div>
           </div>
           <div class="field"><label>விவரம்</label><textarea id="ie_desc"></textarea></div>
+          <div class="field" id="ie_orig_attach_wrap" style="display:none;">
+            <label>📎 பயனாளர் இணைத்த ஆவணங்கள் / படங்கள்</label>
+            <div id="ie_orig_attach"></div>
+          </div>
+          <div class="field" id="ie_signed_petition_wrap" style="display:none;">
+            <label>🧾 கையொப்பமிட்ட மனு (Drive)</label>
+            <div id="ie_signed_petition"></div>
+          </div>
           <div class="field"><label>நிலை</label>
             <select id="ie_status">
               <option value="new">🟡 புதியது</option>
@@ -1177,7 +1185,7 @@ tr:hover td{background:var(--cream);}
       <button type="button" class="btn sm outline" style="margin-top:8px;" onclick="saveSignedPetitionToDrive()">☁️ கையொப்பமிட்ட மனுவை Drive-ல் சேமி</button>
       <div id="pet_signed_saved_list" style="margin-top:8px;"></div>
     </div>
-    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
+    <div id="pet_action_row" style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
       <button type="button" class="btn sm" onclick="generatePetitionPDF()">📄 மனு + இணைப்புகள் — PDF உருவாக்கு</button>
       <button type="button" class="btn sm" onclick="sendPetitionEmail()">📧 மின்னஞ்சலில் அனுப்பு</button>
       <button type="button" class="btn sm outline" onclick="clearPetitionDraft()">🗑️ வரைவை அழி (தானியங்கி வாசகம்)</button>
@@ -3270,7 +3278,35 @@ function openIssueEdit(tno){
     `<div class="action-note">✅ <b>${fmtDate(n.date)}:</b> ${esc(n.note)}</div>`).join('') || '<p class="hint" style="margin:4px 0;">இதுவரை நடவடிக்கை குறிப்புகள் இல்லை.</p>';
   document.getElementById('ie_resolution_file').value = '';
   renderResolutionPhotosList();
+  renderIssueOrigAttachments(rec);
   document.getElementById('issueEditModal').classList.add('open');
+}
+/* பயனாளர் புகார் பதிவு செய்யும்போது இணைத்த மூல ஆவணங்கள்/படங்கள் (rec.attachments) மற்றும்
+   நிர்வாகி பின்னர் Drive-ல் சேமித்த கையொப்பமிட்ட மனு (rec.signedPetition) — இரண்டையும்
+   "பிரச்சினை பதிவைத் திருத்த" modal-லேயே காணும் வசதி. */
+function renderIssueOrigAttachments(rec){
+  const wrap = document.getElementById('ie_orig_attach_wrap');
+  const el = document.getElementById('ie_orig_attach');
+  const list = rec.attachments || [];
+  if(list.length){
+    wrap.style.display = '';
+    el.innerHTML = list.map(a=>{
+      const href = a.driveLink || a.dataUrl;
+      const isImg = a.type==='image';
+      return `<div style="margin-bottom:4px;">${isImg?'🖼️':'📄'} <a href="${href}" target="_blank" rel="noopener">${esc(a.name||'ஆவணம்')}</a>${a.driveLink ? ' <span class="hint">(Drive)</span>' : ''}</div>`;
+    }).join('');
+  } else {
+    wrap.style.display = 'none'; el.innerHTML = '';
+  }
+  const pwrap = document.getElementById('ie_signed_petition_wrap');
+  const pel = document.getElementById('ie_signed_petition');
+  const plist = rec.signedPetition || [];
+  if(plist.length){
+    pwrap.style.display = '';
+    pel.innerHTML = plist.map(a=>`<div style="margin-bottom:4px;">☁️ <a href="${a.driveLink}" target="_blank" rel="noopener">${esc(a.name||'மனு')}</a></div>`).join('');
+  } else {
+    pwrap.style.display = 'none'; pel.innerHTML = '';
+  }
 }
 function renderResolutionPhotosList(){
   const el = document.getElementById('ie_resolution_list');
@@ -3442,12 +3478,35 @@ async function sendPetitionEmail(){
     const data = await res.json();
     if(data && data.mail && data.mail.status === 'ok'){
       toast('✅ மின்னஞ்சல் அனுப்பப்பட்டது' + (petitionSignedFile ? ' (கையொப்பமிட்ட மனு இணைக்கப்பட்டது)' : '') + (ccEmails.length ? ` (நகல்: ${ccEmails.length})` : ''));
+      // அனுப்பியதற்கான தெளிவான உறுதிப்படுத்தலை modal-லேயே காட்டி, சிறிது நேரம் கழித்து
+      // தானாக மூடுகிறது — "அனுப்பப்பட்டதா இல்லையா" எனும் குழப்பம் வராமல்.
+      showPetitionSentBanner(`✅ ${toEmail}-க்கு மின்னஞ்சல் வெற்றிகரமாக அனுப்பப்பட்டது.` + (ccEmails.length ? ` நகல்: ${ccEmails.length} பேருக்கு.` : ''));
+      setTimeout(closePetitionModal, 1800);
     } else if(data && data.mail && data.mail.status === 'skipped'){
       toast('பெறுநர் மின்னஞ்சல் சரியில்லை — சரிபார்க்கவும்');
+      showPetitionSentBanner('⚠️ பெறுநர் மின்னஞ்சல் சரியில்லை — சரிபார்த்து மீண்டும் முயற்சிக்கவும்.', true);
     } else {
       toast('மின்னஞ்சல் அனுப்ப முடியவில்லை — Apps Script-ல் testMail அனுமதி கொடுக்கப்பட்டதா எனச் சரிபார்க்கவும்');
+      showPetitionSentBanner('❌ மின்னஞ்சல் அனுப்ப முடியவில்லை — Apps Script அனுமதியை சரிபார்க்கவும்.', true);
     }
-  }catch(err){ toast('இணைப்பு பிழை — மீண்டும் முயற்சிக்கவும்'); }
+  }catch(err){
+    toast('இணைப்பு பிழை — மீண்டும் முயற்சிக்கவும்');
+    showPetitionSentBanner('❌ இணைப்பு பிழை — மீண்டும் முயற்சிக்கவும்.', true);
+  }
+}
+/* மனு modal-க்குள்ளேயே அனுப்பிய முடிவை (வெற்றி/தோல்வி) ஒரு சிறிய பேனராக காட்டுகிறது.
+   வெற்றியானால் மட்டும் மேலே தானாக modal மூடப்படும் (setTimeout via caller). */
+function showPetitionSentBanner(msg, isError){
+  let b = document.getElementById('pet_sent_banner');
+  if(!b){
+    b = document.createElement('div');
+    b.id = 'pet_sent_banner';
+    b.style.cssText = 'margin-top:10px; padding:10px 12px; border-radius:10px; font-size:.85rem; font-weight:600;';
+    document.querySelector('#petitionModal > div').insertBefore(b, document.getElementById('pet_action_row'));
+  }
+  b.style.background = isError ? '#FBEDD6' : '#E4F2EC';
+  b.style.color = isError ? '#7A0C10' : '#1F6E52';
+  b.textContent = msg;
 }
 function openPetitionModal(tno){
   if(!currentAdmin || currentAdmin.role!=='super') return; // defense in depth — button is super-only in the UI too
@@ -3507,6 +3566,8 @@ ${rec.description}
       imgs.map((a,idx)=>`<label style="display:flex; align-items:center; gap:6px; margin-bottom:4px; font-size:.85rem;"><input type="checkbox" class="pet-att-chk" value="${idx}" checked> ${esc(a.name)} (படம்)</label>`).join('') +
       (others.length ? `<p class="hint" style="margin-top:6px;">பின்வரும் ஆவணங்கள் படம் இல்லாததால் தானாக PDF-ல் சேராது — தேவைப்பட்டால் தனியாக இணைக்கவும்: ${others.map(a=>esc(a.name)).join(', ')}</p>` : '');
   }
+  const banner = document.getElementById('pet_sent_banner');
+  if(banner) banner.remove();
   document.getElementById('petitionModal').style.display = 'flex';
   renderSignedPetitionList();
 }
